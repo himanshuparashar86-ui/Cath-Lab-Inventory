@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0d5964">
+  <meta name="description" content="Offline-first cath lab inventory and batch expiry manager">
+  <title>Cath Lab Inventory</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" href="icon-192.png">
+  <link rel="apple-touch-icon" href="icon-192.png">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<header class="topbar">
+  <div class="brand"><div class="brandmark">♥</div><div><strong>Cath Lab Inventory</strong><small>Offline stock & batch manager</small></div></div>
+  <div class="top-actions"><span id="connection" class="pill">Checking…</span><button class="iconbtn" id="installBtn" hidden>Install app</button></div>
+</header>
+<nav class="tabs" aria-label="Main navigation">
+  <button class="tab active" data-view="dashboard">Dashboard</button>
+  <button class="tab" data-view="inventory">Inventory</button>
+  <button class="tab" data-view="activity">Stock activity</button>
+  <button class="tab" data-view="backup">Backup & reports</button>
+</nav>
+<main>
+  <section id="dashboard" class="view active">
+    <div class="pagehead"><div><p class="eyebrow">OVERVIEW</p><h1>Inventory dashboard</h1><p class="muted">A quick view of stock, expiry and reorder needs.</p></div><button class="primary" id="dashAdd">＋ Add stock</button></div>
+    <div class="stats" id="stats"></div>
+    <div class="grid2">
+      <article class="panel"><div class="panelhead"><h2>Expiry watch</h2><span class="muted">Next 90 days</span></div><div id="expiryList" class="list"></div></article>
+      <article class="panel"><div class="panelhead"><h2>Low stock</h2><span class="muted">At or below minimum</span></div><div id="lowList" class="list"></div></article>
+    </div>
+    <article class="panel"><div class="panelhead"><h2>Recently added batches</h2><button class="textbtn" data-goto="inventory">View inventory →</button></div><div id="recentList" class="tablewrap"></div></article>
+    <p class="notice">Data is stored on this device only. Use Backup & reports to transfer a JSON backup between your phone and computer.</p>
+  </section>
+
+  <section id="inventory" class="view">
+    <div class="pagehead"><div><p class="eyebrow">STOCK REGISTER</p><h1>Inventory</h1><p class="muted">Products and their individual batches.</p></div><button class="primary" id="addProductBtn">＋ Add product</button></div>
+    <div class="toolbar"><input id="inventorySearch" type="search" placeholder="Search product, category, brand or batch…"><select id="categoryFilter"><option value="">All categories</option></select><select id="stockFilter"><option value="">All stock</option><option value="low">Low stock</option><option value="expired">Expired</option><option value="expiring">Expiring in 90 days</option></select></div>
+    <div id="inventoryList" class="productlist"></div>
+  </section>
+
+  <section id="activity" class="view">
+    <div class="pagehead"><div><p class="eyebrow">MOVEMENT LOG</p><h1>Stock activity</h1><p class="muted">Receipts, issues and adjustments.</p></div><button class="primary" id="newMovementBtn">＋ Record movement</button></div>
+    <div class="toolbar"><input id="activitySearch" type="search" placeholder="Search item, batch or note…"><select id="movementFilter"><option value="">All movements</option><option value="IN">Stock in</option><option value="OUT">Stock out</option><option value="ADJUST">Adjustment</option></select></div>
+    <div id="activityList" class="tablewrap"></div>
+  </section>
+
+  <section id="backup" class="view">
+    <div class="pagehead"><div><p class="eyebrow">PORTABILITY & REPORTS</p><h1>Backup & reports</h1><p class="muted">Move your data safely between devices.</p></div></div>
+    <div class="grid2">
+      <article class="panel"><h2>JSON backup</h2><p class="muted">Export a complete backup including products, batches and activity. Import it on your other device.</p><button class="primary full" id="exportBtn">Download JSON backup</button><label class="filelabel full">Choose JSON backup to import<input id="importFile" type="file" accept=".json,application/json"></label><div class="field"><label>Import mode</label><select id="importMode"><option value="merge">Merge (recommended; skips existing IDs)</option><option value="replace">Replace all local data</option></select></div><p class="small muted">Merge adds records with new IDs and skips IDs already present. Replace overwrites this device's local inventory.</p></article>
+      <article class="panel"><h2>CSV reports</h2><p class="muted">Export a spreadsheet-friendly snapshot for Excel.</p><button class="secondary full" id="csvStockBtn">Export batch stock CSV</button><button class="secondary full" id="csvActivityBtn">Export activity CSV</button><div class="divider"></div><h2>Device information</h2><div id="deviceInfo" class="small"></div></article>
+    </div>
+    <article class="panel"><h2>Important: manual synchronisation</h2><ol class="steps"><li>Export a JSON backup from the device where you last updated stock.</li><li>Transfer the file to your other device (USB, email, or a secure file-sharing method).</li><li>Open this app on that device and import the backup using <b>Merge</b>.</li><li>Export a fresh backup after making changes. Avoid editing both devices independently before merging.</li></ol><p class="notice">Do not enter patient names, MRNs, dates of birth or other patient-identifiable information. This app is for inventory only.</p></article>
+  </section>
+</main>
+
+<dialog id="productDialog">
+  <form id="productForm" method="dialog">
+    <div class="dialoghead"><div><p class="eyebrow">PRODUCT MASTER</p><h2 id="productDialogTitle">Add product</h2></div><button type="button" class="close" data-close="productDialog">×</button></div>
+    <input type="hidden" id="productId">
+    <div class="formgrid">
+      <div class="field span2"><label for="pName">Product name *</label><input id="pName" required placeholder="e.g. Drug eluting stent"></div>
+      <div class="field"><label for="pCategory">Category *</label><select id="pCategory" required></select></div>
+      <div class="field"><label for="pBrand">Brand / manufacturer</label><input id="pBrand" placeholder="Manufacturer"></div>
+      <div class="field"><label for="pUnit">Unit</label><select id="pUnit"><option>Nos</option><option>Pack</option><option>Box</option><option>Vial</option><option>Set</option><option>Pair</option><option>Other</option></select></div>
+      <div class="field"><label for="pMin">Minimum stock level</label><input id="pMin" type="number" min="0" step="1" value="0"></div>
+      <div class="field span2"><label for="pNotes">Notes</label><textarea id="pNotes" rows="2" placeholder="Optional product notes"></textarea></div>
+    </div>
+    <div class="dialogactions"><button type="button" class="secondary" data-close="productDialog">Cancel</button><button class="primary" type="submit">Save product</button></div>
+  </form>
+</dialog>
+
+<dialog id="batchDialog">
+  <form id="batchForm" method="dialog">
+    <div class="dialoghead"><div><p class="eyebrow">BATCH REGISTER</p><h2 id="batchDialogTitle">Add batch</h2></div><button type="button" class="close" data-close="batchDialog">×</button></div>
+    <input type="hidden" id="batchId"><input type="hidden" id="batchProductId">
+    <div class="formgrid">
+      <div class="field span2"><label for="bProduct">Product *</label><select id="bProduct" required></select></div>
+      <div class="field"><label for="bLot">Batch / lot number *</label><input id="bLot" required></div>
+      <div class="field"><label for="bSupplier">Supplier</label><input id="bSupplier"></div>
+      <div class="field"><label for="bReceived">Received quantity *</label><input id="bReceived" type="number" min="0" step="1" required></div>
+      <div class="field"><label for="bCost">Unit purchase price (₹)</label><input id="bCost" type="number" min="0" step="0.01" value="0"></div>
+      <div class="field"><label for="bMfg">Manufacturing date</label><input id="bMfg" type="date"></div>
+      <div class="field"><label for="bExpiry">Expiry date</label><input id="bExpiry" type="date"></div>
+      <div class="field span2"><label for="bNotes">Notes / invoice reference</label><input id="bNotes"></div>
+    </div>
+    <p class="small muted" id="batchEditHint">Adding a batch also creates a stock-in entry.</p>
+    <div class="dialogactions"><button type="button" class="secondary" data-close="batchDialog">Cancel</button><button class="primary" type="submit">Save batch</button></div>
+  </form>
+</dialog>
+
+<dialog id="movementDialog">
+  <form id="movementForm" method="dialog">
+    <div class="dialoghead"><div><p class="eyebrow">STOCK MOVEMENT</p><h2>Record movement</h2></div><button type="button" class="close" data-close="movementDialog">×</button></div>
+    <div class="formgrid">
+      <div class="field"><label for="mType">Movement type *</label><select id="mType"><option value="OUT">Stock out / issue</option><option value="IN">Stock in / receipt</option><option value="ADJUST">Adjustment</option></select></div>
+      <div class="field"><label for="mDate">Date *</label><input id="mDate" type="date" required></div>
+      <div class="field span2"><label for="mBatch">Batch *</label><select id="mBatch" required></select><p class="small muted" id="fefoHint"></p></div>
+      <div class="field"><label for="mQty">Quantity *</label><input id="mQty" type="number" min="1" step="1" required></div>
+      <div class="field"><label for="mReason">Reason / reference</label><input id="mReason" placeholder="e.g. Routine issue; non-identifying reference only"></div>
+    </div>
+    <p class="small muted">For adjustment, enter the quantity change: positive to add, negative to reduce.</p>
+    <div class="dialogactions"><button type="button" class="secondary" data-close="movementDialog">Cancel</button><button class="primary" type="submit">Save movement</button></div>
+  </form>
+</dialog>
+<div id="toast" role="status" aria-live="polite"></div>
+<footer>© <span id="year"></span> Cath Lab Inventory · Local device storage</footer>
+<script src="app.js"></script>
+</body>
+</html>
